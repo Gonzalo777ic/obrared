@@ -1,0 +1,48 @@
+# .cursorrules - ObraRed
+
+## 1. PROPÓSITO DEL PROYECTO
+ObraRed es una plataforma web B2B/B2C de alto rendimiento diseñada para profesionalizar y centralizar la conexión entre mano de obra técnica (albañiles, operarios de maquinaria pesada, mineros) y empresas o clientes finales. Su visión a largo plazo es convertirse en un ecosistema de "Inteligencia de Recursos Humanos" que genere datos valiosos para el planeamiento urbano e industrial en el Perú.
+
+## 2. ARQUITECTURA Y STACK TECNOLÓGICO
+* **Framework:** Next.js (App Router) orientado a Server Components y Server Actions.
+* **Lenguaje:** TypeScript estricto para garantizar tipado fuerte.
+* **Base de Datos y ORM:** PostgreSQL gestionado a través de **Prisma ORM**.
+* **Autenticación:** Supabase (`@supabase/ssr`) exclusivamente para Auth y gestión de sesiones.
+* **Estilos:** Tailwind CSS con utilidades atómicas.
+* **Despliegue:** Orientado a entornos serverless (Vercel).
+* **Gestor de Paquetes:** `pnpm` (Exclusivo).
+
+## 3. DISEÑO Y UI/UX INDUSTRIAL
+* **Estilo "Industrial-Elegante":** Interfaces sobrias, corporativas y profesionales. Tonos oscuros (`slate-900`) para legibilidad, amarillo maquinaria (`amber-500`) para insignias, y rojo seguridad (`red-600`) para CTAs críticos.
+* **Enfoque Mobile-First:** Prioriza vistas de tarjetas (`WorkerCard`) sobre tablas complejas en resoluciones móviles, garantizando "cero fricción" para usuarios operativos. Pantallas Desktop-Optimized solo para dashboards analíticos B2B.
+* **Componentes:** Reutiliza componentes de UI. Evita el exceso de bordes o sombras. Usa separadores limpios.
+* **Selectores UI:** Usa estrictamente el componente `<SelectDropdown>` (`@/components/ui/select-dropdown`) envolviéndolo en un `<Controller>` de `react-hook-form`. Queda ESTRICTAMENTE PROHIBIDO usar la etiqueta `<select>` nativa de HTML.
+
+## 4. REGLAS DE NEGOCIO Y MODELO DE DATOS
+* **Estructura de Entidades:** Los perfiles deben soportar múltiples dimensiones: nivel (Peón, Oficial, Maestro), rubro (Construcción, Minería), maquinaria operada, certificaciones y regímenes de trabajo (ej. 14x7).
+* **No Hardcodear:** Queda prohibido hardcodear estados laborales, nombres de roles o tarifas. Todo debe centralizarse en constantes o variables de entorno.
+* **Simplicidad (YAGNI):** No agregues abstracciones complejas ni herramientas de IA/ML a menos que se solicite de forma explícita. El sistema se basa en directorios eficientes y estadísticas directas.
+
+## 5. REGLAS DE DESARROLLO FRONTEND Y BACKEND
+* **Fuente de Verdad:** El código actual (`src/` y `app/`) y las instrucciones del chat. La arquitectura actual manda.
+* **Modularización y Límites (CRÍTICO):** 
+  * Mantener los archivos entre **300 y 500 líneas** de código.
+  * Si un archivo (especialmente `page.tsx`) supera este límite, DEBE refactorizarse extrayendo sub-componentes (Formularios, Filtros) a una carpeta local `_components/`.
+  * `page.tsx` debe actuar como **Orquestador**, delegando la UI.
+* **Tipado y Validación:** Prohibido el uso de `any` o `@ts-ignore`. Todo formulario y Server Action debe estar respaldado por **Zod Schemas**. Los Zod Schemas deben ser el espejo de los modelos de Prisma.
+* **Seguridad (RBAC):** Dado que Prisma bypassa el RLS de Supabase, **la autorización debe validarse a nivel de aplicación**. Todo Server Action debe verificar la sesión y el rol (`Admin`, `Empresa`, `Trabajador`) antes de ejecutar operaciones.
+
+## 6. ARQUITECTURA DE BASE DE DATOS Y ETLS (PRISMA)
+* **Regla de Persistencia (SOFT DELETE ESTRICTO):** Está rotundamente prohibido utilizar operaciones `DELETE` físicas. Ningún registro se elimina del sistema. Todo borrado debe ser lógico usando un campo booleano `isDeleted` (o `deletedAt`). Las consultas de lectura en Prisma siempre deben filtrar los registros activos por defecto.
+* **Arquitectura de Esquemas:** El esquema debe estar modularizado utilizando múltiples archivos (Prisma Schema Folder) para separar dominios si el proyecto crece (Ej. `auth.prisma`, `workers.prisma`).
+* **Ingesta de Datos:** La lectura de archivos masivos (ej. listas de trabajadores en Excel) se realiza en el cliente usando librerías ligeras para convertir a JSON. Las inserciones masivas van al backend vía `createMany` o transacciones `upsert` en Prisma.
+
+## 7. GESTIÓN DE PAQUETES (PNPM EXCLUSIVO)
+* Usa EXCLUSIVAMENTE `pnpm` para dependencias y scripts.
+* Queda ESTRICTAMENTE PROHIBIDO utilizar `npm`, `yarn` o `bun`.
+* Comandos de instalación deben ser siempre `pnpm add <paquete>` o `pnpm add -D <paquete>`.
+
+## 8. REGLA CRÍTICA DE TERMINAL (ABSOLUTA)
+* La IA TIENE ESTRICTAMENTE PROHIBIDO ejecutar comandos automáticos de verificación de larga duración (`npm run build`, `next build`, `npm run lint`, chequeos pesados de `tsc`).
+* La validación de errores la realizará el desarrollador manualmente.
+* **Excepción temporal:** La IA tiene permitido ejecutar comandos de instalación y configuración de Prisma (`pnpm add`, `npx prisma init`, `npx prisma db pull`, `npx prisma generate`).
