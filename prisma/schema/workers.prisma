@@ -1,0 +1,32 @@
+model WorkerProfile {
+  id             String    @id @default(uuid()) @db.Uuid
+  userProfileId  String?   @unique @map("user_profile_id") @db.Uuid
+  fullName       String    @map("full_name")
+  specialtyId    String    @map("specialty_id") @db.Uuid
+  levelId        String    @map("level_id") @db.Uuid
+  machineryId    String    @map("machinery_id") @db.Uuid
+  availabilityId String    @map("availability_id") @db.Uuid
+  departmentCode String    @map("department_code")
+  departmentName String    @map("department_name")
+  cityCode       String    @map("city_code")
+  cityName       String    @map("city_name")
+  districtCode   String    @map("district_code")
+  districtName   String    @map("district_name")
+  isFeatured     Boolean   @default(false) @map("is_featured")
+  isVerified     Boolean   @default(false) @map("is_verified")
+  isDeleted      Boolean   @default(false) @map("is_deleted")
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  userProfile  UserProfile?       @relation(fields: [userProfileId], references: [id])
+  specialty    Specialty          @relation(fields: [specialtyId], references: [id])
+  level        WorkerLevel        @relation(fields: [levelId], references: [id])
+  machinery    MachineryType      @relation(fields: [machineryId], references: [id])
+  availability AvailabilityStatus @relation(fields: [availabilityId], references: [id])
+
+  @@index([isDeleted, updatedAt])
+  @@index([specialtyId])
+  @@index([departmentCode, cityCode, districtCode])
+  @@map("worker_profiles")
+}
