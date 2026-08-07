@@ -1,18 +1,14 @@
-import type { UserRole } from "@/generated/prisma/client";
+export const ROLE_SLUGS = {
+  ADMIN: "admin",
+  CLIENTE: "cliente",
+  ANUNCIANTE: "anunciante",
+  TRABAJADOR: "trabajador",
+  EMPRESA: "empresa",
+} as const;
 
-export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: "Administrador",
-  CLIENTE: "Cliente",
-  ANUNCIANTE: "Anunciante",
-  TRABAJADOR: "Trabajador",
-  EMPRESA: "Empresa",
-};
+export type RoleSlug = (typeof ROLE_SLUGS)[keyof typeof ROLE_SLUGS];
 
-export const DEFAULT_USER_ROLE: UserRole = "CLIENTE";
-
-export function getRoleLabel(role: UserRole): string {
-  return USER_ROLE_LABELS[role];
-}
+export const DEFAULT_ROLE_SLUG: RoleSlug = ROLE_SLUGS.CLIENTE;
 
 export function getInitials(fullName: string | null | undefined, email: string) {
   if (fullName?.trim()) {

@@ -1,4 +1,4 @@
-import { serverEnv } from "@/lib/env";
+import { serverEnv } from "@/lib/env/server";
 
 export function getPricingConfig() {
   return {

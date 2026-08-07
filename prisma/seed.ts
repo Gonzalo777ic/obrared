@@ -12,6 +12,39 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg(pool),
 });
 
+const roles = [
+  {
+    slug: "admin",
+    name: "Administrador",
+    description: "Acceso total a la plataforma",
+    sortOrder: 1,
+  },
+  {
+    slug: "cliente",
+    name: "Cliente",
+    description: "Usuario base al registrarse",
+    sortOrder: 2,
+  },
+  {
+    slug: "anunciante",
+    name: "Anunciante",
+    description: "Publica anuncios y contrataciones",
+    sortOrder: 3,
+  },
+  {
+    slug: "trabajador",
+    name: "Trabajador",
+    description: "Perfil de mano de obra técnica",
+    sortOrder: 4,
+  },
+  {
+    slug: "empresa",
+    name: "Empresa",
+    description: "Cuenta corporativa B2B",
+    sortOrder: 5,
+  },
+] as const;
+
 const specialties = [
   { slug: "perforista", name: "Perforista", sortOrder: 1 },
   { slug: "enmaderero", name: "Enmaderero", sortOrder: 2 },
@@ -267,6 +300,22 @@ const workers = [
   },
 ] as const;
 
+async function seedRoles() {
+  for (const role of roles) {
+    await prisma.role.upsert({
+      where: { slug: role.slug },
+      update: {
+        name: role.name,
+        description: role.description,
+        sortOrder: role.sortOrder,
+        isActive: true,
+        isDeleted: false,
+      },
+      create: role,
+    });
+  }
+}
+
 async function seedCatalog() {
   for (const item of specialties) {
     await prisma.specialty.upsert({
@@ -419,9 +468,10 @@ async function seedWorkers(maps: Awaited<ReturnType<typeof seedCatalog>>) {
 }
 
 async function main() {
+  await seedRoles();
   const maps = await seedCatalog();
   await seedWorkers(maps);
-  console.log("Seed completado.");
+  console.log("Seed completado (roles, catálogo y trabajadores).");
 }
 
 main()

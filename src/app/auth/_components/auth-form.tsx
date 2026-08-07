@@ -7,7 +7,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+import {
+  registerWithEmailVerificationAction,
+  resendVerificationEmailAction,
+} from "@/app/_actions/auth-email";
 import { syncUserProfileAction } from "@/app/_actions/auth";
+import { isEmailNotConfirmedMessage } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import {
   loginSchema,
@@ -16,13 +21,17 @@ import {
   type RegisterInput,
 } from "@/schemas/auth.schema";
 
-type AuthMode = "login" | "register";
+import { VerifyEmailPending } from "./verify-email-pending";
+
+type AuthMode = "login" | "register" | "verify";
 
 export function AuthForm() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("login");
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
 
   const loginForm = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -39,9 +48,17 @@ export function AuthForm() {
     },
   });
 
+  function openVerifyPending(email: string) {
+    setPendingEmail(email);
+    setMode("verify");
+    setFormError(null);
+    setSuccessMessage(null);
+  }
+
   async function handleLogin(values: LoginInput) {
     setIsSubmitting(true);
     setFormError(null);
+    setSuccessMessage(null);
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
@@ -50,6 +67,12 @@ export function AuthForm() {
     });
 
     if (error) {
+      if (isEmailNotConfirmedMessage(error.message)) {
+        openVerifyPending(values.email);
+        setIsSubmitting(false);
+        return;
+      }
+
       setFormError(error.message);
       setIsSubmitting(false);
       return;
@@ -69,31 +92,43 @@ export function AuthForm() {
   async function handleRegister(values: RegisterInput) {
     setIsSubmitting(true);
     setFormError(null);
+    setSuccessMessage(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: { full_name: values.fullName },
-      },
-    });
+    const result = await registerWithEmailVerificationAction(values);
 
-    if (error) {
-      setFormError(error.message);
+    if (result.error) {
+      setFormError(result.error);
       setIsSubmitting(false);
       return;
     }
 
-    const syncResult = await syncUserProfileAction(values.fullName);
-    if (syncResult.error) {
-      setFormError(syncResult.error);
+    if (result.needsVerification && result.email) {
+      openVerifyPending(result.email);
       setIsSubmitting(false);
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    setFormError("No se pudo completar el registro.");
+    setIsSubmitting(false);
+  }
+
+  async function handleResendVerification() {
+    if (!pendingEmail) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    setSuccessMessage(null);
+
+    const result = await resendVerificationEmailAction(pendingEmail);
+
+    if (result.error) {
+      setFormError(result.error);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setSuccessMessage("Correo de verificación reenviado.");
+    setIsSubmitting(false);
   }
 
   return (
@@ -109,44 +144,62 @@ export function AuthForm() {
         />
       </div>
 
-      <div className="mt-6 flex border-b border-slate-200">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("login");
-            setFormError(null);
-          }}
-          className={`flex-1 pb-3 text-sm font-semibold transition-colors ${
-            mode === "login"
-              ? "border-b-2 border-amber-500 text-slate-900"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          Iniciar sesión
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("register");
-            setFormError(null);
-          }}
-          className={`flex-1 pb-3 text-sm font-semibold transition-colors ${
-            mode === "register"
-              ? "border-b-2 border-amber-500 text-slate-900"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          Crear cuenta
-        </button>
-      </div>
+      {mode !== "verify" ? (
+        <div className="mt-6 flex border-b border-slate-200">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("login");
+              setFormError(null);
+              setSuccessMessage(null);
+            }}
+            className={`flex-1 pb-3 text-sm font-semibold transition-colors ${
+              mode === "login"
+                ? "border-b-2 border-amber-500 text-slate-900"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Iniciar sesión
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("register");
+              setFormError(null);
+              setSuccessMessage(null);
+            }}
+            className={`flex-1 pb-3 text-sm font-semibold transition-colors ${
+              mode === "register"
+                ? "border-b-2 border-amber-500 text-slate-900"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Crear cuenta
+          </button>
+        </div>
+      ) : null}
 
-      {formError ? (
+      {formError && mode !== "verify" ? (
         <p className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {formError}
         </p>
       ) : null}
 
-      {mode === "login" ? (
+      {mode === "verify" ? (
+        <VerifyEmailPending
+          email={pendingEmail}
+          isSubmitting={isSubmitting}
+          error={formError}
+          successMessage={successMessage}
+          onResend={handleResendVerification}
+          onBackToLogin={() => {
+            setMode("login");
+            setFormError(null);
+            setSuccessMessage(null);
+            loginForm.setValue("email", pendingEmail);
+          }}
+        />
+      ) : mode === "login" ? (
         <form
           onSubmit={loginForm.handleSubmit(handleLogin)}
           className="mt-6 space-y-4"
@@ -291,9 +344,9 @@ export function AuthForm() {
           </div>
 
           <p className="text-xs leading-relaxed text-slate-500">
-            Al registrarte creas una cuenta con rol{" "}
-            <span className="font-medium text-slate-700">Cliente</span>. Podrás
-            convertirte en anunciante cuando publiques en la plataforma.
+            Te enviaremos un correo de verificación antes de activar tu cuenta.
+            El rol inicial será{" "}
+            <span className="font-medium text-slate-700">Cliente</span>.
           </p>
 
           <button

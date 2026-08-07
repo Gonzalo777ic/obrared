@@ -11,6 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:setup-auth": "echo 'Ejecuta prisma/sql/supabase-auth-trigger.sql en Supabase → SQL Editor'",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.84.0",
+    "resend": "^6.18.1",
     "ubigeo-fns": "^2.2.0",
     "zod": "^4.4.3"
   },
@@ -44,7 +46,11 @@
   },
   "packageManager": "pnpm@10.34.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/engines", "esbuild", "prisma"]
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

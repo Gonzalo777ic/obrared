@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
 
-import { DEFAULT_USER_ROLE } from "@/constants/roles";
 import { getAuthUser, getOrCreateUserProfile } from "@/lib/auth/session";
 
 import { AppShellClient } from "./app-shell-client";
@@ -18,7 +17,7 @@ export async function AppShell({ children }: AppShellProps) {
     <UserAuthArea
       email={user?.email}
       fullName={profile?.fullName}
-      role={profile?.role}
+      roleName={profile?.role.name}
     />
   );
 

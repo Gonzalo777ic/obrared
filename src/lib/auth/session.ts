@@ -1,8 +1,11 @@
-import type { UserRole } from "@/generated/prisma/client";
-
-import { DEFAULT_USER_ROLE } from "@/constants/roles";
+import { DEFAULT_ROLE_SLUG, type RoleSlug } from "@/constants/roles";
+import { getDefaultRole } from "@/lib/queries/roles";
 import { createClient } from "@/lib/supabase/server";
 import { activeOnly, prisma } from "@/lib/prisma";
+
+const profileInclude = {
+  role: true,
+} as const;
 
 export async function getAuthUser() {
   const supabase = await createClient();
@@ -22,6 +25,7 @@ export async function getCurrentUserProfile() {
       supabaseId: user.id,
       ...activeOnly,
     },
+    include: profileInclude,
   });
 }
 
@@ -32,24 +36,51 @@ export async function getOrCreateUserProfile() {
   const existing = await getCurrentUserProfile();
   if (existing) return existing;
 
+  const defaultRole = await getDefaultRole();
+
   return prisma.userProfile.create({
     data: {
       supabaseId: user.id,
       email: user.email,
+      roleId: defaultRole.id,
       fullName:
         typeof user.user_metadata?.full_name === "string"
           ? user.user_metadata.full_name
           : null,
-      role: DEFAULT_USER_ROLE,
     },
+    include: profileInclude,
   });
 }
 
-export async function requireRole(allowedRoles: UserRole[]) {
+export async function requireRole(allowedSlugs: RoleSlug[]) {
   const profile = await getCurrentUserProfile();
-  if (!profile || !allowedRoles.includes(profile.role)) {
+  if (!profile || !allowedSlugs.includes(profile.role.slug as RoleSlug)) {
     return null;
   }
 
   return profile;
+}
+
+export async function syncProfileFromAuthUser(fullName?: string) {
+  const user = await getAuthUser();
+  if (!user?.email) return null;
+
+  const defaultRole = await getDefaultRole();
+
+  return prisma.userProfile.upsert({
+    where: { supabaseId: user.id },
+    update: {
+      email: user.email,
+      ...(fullName ? { fullName } : {}),
+      isDeleted: false,
+      deletedAt: null,
+    },
+    create: {
+      supabaseId: user.id,
+      email: user.email,
+      fullName: fullName ?? null,
+      roleId: defaultRole.id,
+    },
+    include: profileInclude,
+  });
 }

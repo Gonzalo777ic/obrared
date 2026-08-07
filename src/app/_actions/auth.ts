@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { DEFAULT_USER_ROLE } from "@/constants/roles";
-import { getAuthUser } from "@/lib/auth/session";
+import { ROLE_SLUGS } from "@/constants/roles";
+import {
+  getAuthUser,
+  syncProfileFromAuthUser,
+} from "@/lib/auth/session";
+import { getRoleBySlug } from "@/lib/queries/roles";
 import { activeOnly, prisma } from "@/lib/prisma";
 
 type ActionResult = {
@@ -13,29 +17,29 @@ type ActionResult = {
 export async function syncUserProfileAction(
   fullName?: string,
 ): Promise<ActionResult> {
-  const user = await getAuthUser();
-  if (!user?.email) {
-    return { error: "No hay sesión activa." };
+  if (!process.env.DATABASE_URL) {
+    return {
+      error:
+        "Falta DATABASE_URL en .env. Configura PostgreSQL (Supabase) para sincronizar tu perfil.",
+    };
   }
 
-  await prisma.userProfile.upsert({
-    where: { supabaseId: user.id },
-    update: {
-      email: user.email,
-      ...(fullName ? { fullName } : {}),
-      isDeleted: false,
-      deletedAt: null,
-    },
-    create: {
-      supabaseId: user.id,
-      email: user.email,
-      fullName: fullName ?? null,
-      role: DEFAULT_USER_ROLE,
-    },
-  });
+  try {
+    const user = await getAuthUser();
+    if (!user?.email) {
+      return { error: "No hay sesión activa." };
+    }
 
-  revalidatePath("/", "layout");
-  return {};
+    await syncProfileFromAuthUser(fullName);
+
+    revalidatePath("/", "layout");
+    return {};
+  } catch {
+    return {
+      error:
+        "No se pudo guardar tu perfil. Verifica la conexión a la base de datos.",
+    };
+  }
 }
 
 export async function signOutAction(): Promise<void> {
@@ -51,14 +55,20 @@ export async function promoteToAdvertiserAction(): Promise<ActionResult> {
 
   const profile = await prisma.userProfile.findFirst({
     where: { supabaseId: user.id, ...activeOnly },
+    include: { role: true },
   });
 
   if (!profile) return { error: "Perfil no encontrado." };
-  if (profile.role === "ADMIN") return {};
+  if (profile.role.slug === ROLE_SLUGS.ADMIN) return {};
+
+  const advertiserRole = await getRoleBySlug(ROLE_SLUGS.ANUNCIANTE);
+  if (!advertiserRole) {
+    return { error: "Rol anunciante no configurado en la base de datos." };
+  }
 
   await prisma.userProfile.update({
     where: { id: profile.id },
-    data: { role: "ANUNCIANTE" },
+    data: { roleId: advertiserRole.id },
   });
 
   revalidatePath("/", "layout");

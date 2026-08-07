@@ -14,9 +14,13 @@ export async function GET(request: Request) {
 
     if (!error) {
       await syncUserProfileAction();
-      return NextResponse.redirect(`${origin}${next}`);
+      const redirectUrl = new URL(next, origin);
+      redirectUrl.searchParams.set("verified", "1");
+      return NextResponse.redirect(redirectUrl.toString());
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth`);
+  const errorUrl = new URL("/auth", origin);
+  errorUrl.searchParams.set("error", "verification_failed");
+  return NextResponse.redirect(errorUrl.toString());
 }
