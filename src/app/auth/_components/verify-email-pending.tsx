@@ -24,7 +24,7 @@ export function VerifyEmailPending({
           Verifica tu correo para continuar
         </p>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Enviamos un enlace de confirmación a{" "}
+          Te enviamos un enlace de confirmación a{" "}
           <span className="font-medium text-slate-900">{email}</span>. Revisa tu
           bandeja de entrada y spam antes de iniciar sesión.
         </p>

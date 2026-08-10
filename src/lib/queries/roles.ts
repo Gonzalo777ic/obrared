@@ -1,6 +1,9 @@
 import { DEFAULT_ROLE_SLUG } from "@/constants/roles";
 import { activeCatalogWhere, prisma } from "@/lib/prisma";
 
+export const ROLES_NOT_SEEDED_MESSAGE =
+  "Roles no inicializados. Ejecuta: pnpm db:push && pnpm db:seed";
+
 export async function getRoleBySlug(slug: string) {
   return prisma.role.findFirst({
     where: {
@@ -11,14 +14,7 @@ export async function getRoleBySlug(slug: string) {
 }
 
 export async function getDefaultRole() {
-  const role = await getRoleBySlug(DEFAULT_ROLE_SLUG);
-  if (!role) {
-    throw new Error(
-      "Rol cliente no encontrado. Ejecuta pnpm db:seed para inicializar roles.",
-    );
-  }
-
-  return role;
+  return getRoleBySlug(DEFAULT_ROLE_SLUG);
 }
 
 export async function listActiveRoles() {
@@ -26,4 +22,12 @@ export async function listActiveRoles() {
     where: activeCatalogWhere,
     orderBy: { sortOrder: "asc" },
   });
+}
+
+export async function hasSeededRoles() {
+  const count = await prisma.role.count({
+    where: activeCatalogWhere,
+  });
+
+  return count > 0;
 }

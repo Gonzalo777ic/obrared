@@ -11,31 +11,44 @@ import { HeroSearch } from "./hero-search";
 import { RecentWorkers } from "./recent-workers";
 import {
   EMPTY_SEARCH_FILTERS,
-  filterWorkers,
-  getFeaturedWorkers,
-  sortByUpdatedDesc,
+  getRankedWorkers,
+  getTopRankedWorkers,
+  hasActiveLocationFilter,
   type WorkerSearchFilters,
 } from "./worker-filters";
 
 type GuestHomeProps = {
   workers: WorkerProfile[];
   catalog: HomeCatalog;
+  isAuthenticated: boolean;
+  senderName?: string | null;
 };
 
-export function GuestHome({ workers, catalog }: GuestHomeProps) {
+export function GuestHome({
+  workers,
+  catalog,
+  isAuthenticated,
+  senderName = null,
+}: GuestHomeProps) {
   const [filters, setFilters] =
     useState<WorkerSearchFilters>(EMPTY_SEARCH_FILTERS);
 
-  const featuredWorkers = useMemo(
-    () => getFeaturedWorkers(workers).slice(0, 8),
-    [workers],
-  );
-
-  const recentWorkers = useMemo(
-    () =>
-      sortByUpdatedDesc(filterWorkers(workers, filters, catalog.categories)),
+  const topWorkers = useMemo(
+    () => getTopRankedWorkers(workers, filters, catalog.categories, 8),
     [catalog.categories, filters, workers],
   );
+
+  const rankedWorkers = useMemo(
+    () => getRankedWorkers(workers, filters, catalog.categories),
+    [catalog.categories, filters, workers],
+  );
+
+  const moreWorkers = useMemo(
+    () => rankedWorkers.slice(topWorkers.length),
+    [rankedWorkers, topWorkers.length],
+  );
+
+  const locationActive = hasActiveLocationFilter(filters);
 
   return (
     <>
@@ -47,7 +60,12 @@ export function GuestHome({ workers, catalog }: GuestHomeProps) {
         }
       />
 
-      <FeaturedWorkers workers={featuredWorkers} />
+      <FeaturedWorkers
+        workers={topWorkers}
+        locationActive={locationActive}
+        isAuthenticated={isAuthenticated}
+        senderName={senderName}
+      />
 
       <CategoryPills
         categories={catalog.categories}
@@ -57,7 +75,12 @@ export function GuestHome({ workers, catalog }: GuestHomeProps) {
         }
       />
 
-      <RecentWorkers workers={recentWorkers} />
+      <RecentWorkers
+        workers={moreWorkers}
+        locationActive={locationActive}
+        isAuthenticated={isAuthenticated}
+        senderName={senderName}
+      />
     </>
   );
 }

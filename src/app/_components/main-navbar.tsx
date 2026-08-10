@@ -17,7 +17,10 @@ export function MainNavbar({ authArea }: MainNavbarProps) {
   return (
     <header className="sticky top-0 z-40 hidden shrink-0 border-b border-amber-600 bg-amber-500 lg:block">
       <div className="flex h-16 items-center gap-6 px-4">
-        <Link href="/" className="shrink-0">
+        <Link
+          href="/"
+          className="shrink-0 rounded-md bg-white px-3 py-1.5 shadow-sm"
+        >
           <Image
             src="/webp/logo-horizontal.webp"
             alt="ObraRed"

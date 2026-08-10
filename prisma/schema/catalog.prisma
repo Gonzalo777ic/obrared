@@ -9,8 +9,8 @@ model Specialty {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  workerProfiles WorkerProfile[]
   categories     WorkCategorySpecialty[]
+  workerLinks    WorkerProfileSpecialty[]
 
   @@map("specialties")
 }
@@ -26,7 +26,7 @@ model MachineryType {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  workerProfiles WorkerProfile[]
+  workerLinks    WorkerProfileMachinery[]
 
   @@map("machinery_types")
 }
@@ -75,6 +75,7 @@ model WorkCategory {
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   specialties WorkCategorySpecialty[]
+  workerLinks WorkerProfileCategory[]
 
   @@map("work_categories")
 }

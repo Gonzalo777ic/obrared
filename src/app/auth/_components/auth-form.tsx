@@ -3,16 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-import {
-  registerWithEmailVerificationAction,
-  resendVerificationEmailAction,
-} from "@/app/_actions/auth-email";
 import { syncUserProfileAction } from "@/app/_actions/auth";
 import { isEmailNotConfirmedMessage } from "@/lib/auth/errors";
+import { getAuthCallbackUrl } from "@/lib/env/client";
 import { createClient } from "@/lib/supabase/client";
 import {
   loginSchema,
@@ -27,6 +24,8 @@ type AuthMode = "login" | "register" | "verify";
 
 export function AuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") ?? "/";
   const [mode, setMode] = useState<AuthMode>("login");
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -85,7 +84,7 @@ export function AuthForm() {
       return;
     }
 
-    router.push("/");
+    router.push(nextPath);
     router.refresh();
   }
 
@@ -94,22 +93,37 @@ export function AuthForm() {
     setFormError(null);
     setSuccessMessage(null);
 
-    const result = await registerWithEmailVerificationAction(values);
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: values.email,
+      password: values.password,
+      options: {
+        emailRedirectTo: getAuthCallbackUrl(nextPath),
+        data: { full_name: values.fullName },
+      },
+    });
 
-    if (result.error) {
-      setFormError(result.error);
+    if (error) {
+      setFormError(error.message);
       setIsSubmitting(false);
       return;
     }
 
-    if (result.needsVerification && result.email) {
-      openVerifyPending(result.email);
+    if (!data.session) {
+      openVerifyPending(values.email);
       setIsSubmitting(false);
       return;
     }
 
-    setFormError("No se pudo completar el registro.");
-    setIsSubmitting(false);
+    const syncResult = await syncUserProfileAction(values.fullName);
+    if (syncResult.error) {
+      setFormError(syncResult.error);
+      setIsSubmitting(false);
+      return;
+    }
+
+    router.push(nextPath);
+    router.refresh();
   }
 
   async function handleResendVerification() {
@@ -119,10 +133,17 @@ export function AuthForm() {
     setFormError(null);
     setSuccessMessage(null);
 
-    const result = await resendVerificationEmailAction(pendingEmail);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingEmail,
+      options: {
+        emailRedirectTo: getAuthCallbackUrl("/"),
+      },
+    });
 
-    if (result.error) {
-      setFormError(result.error);
+    if (error) {
+      setFormError(error.message);
       setIsSubmitting(false);
       return;
     }
@@ -344,7 +365,7 @@ export function AuthForm() {
           </div>
 
           <p className="text-xs leading-relaxed text-slate-500">
-            Te enviaremos un correo de verificación antes de activar tu cuenta.
+            Supabase enviará un correo de verificación antes de activar tu cuenta.
             El rol inicial será{" "}
             <span className="font-medium text-slate-700">Cliente</span>.
           </p>

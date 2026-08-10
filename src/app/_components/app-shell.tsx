@@ -15,9 +15,12 @@ export async function AppShell({ children }: AppShellProps) {
 
   const authArea = (
     <UserAuthArea
+      isAuthenticated={Boolean(user)}
       email={user?.email}
       fullName={profile?.fullName}
       roleName={profile?.role.name}
+      roleSlug={profile?.role.slug}
+      hasPublicWorkerProfile={Boolean(profile?.workerProfile)}
     />
   );
 

@@ -30,7 +30,9 @@ export function SelectDropdown({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
-  const selected = options.find((option) => option.value === value);
+  const selected = value
+    ? options.find((option) => option.value === value)
+    : undefined;
 
   useEffect(() => {
     if (!open) return;

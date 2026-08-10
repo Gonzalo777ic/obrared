@@ -3,6 +3,7 @@ import "dotenv/config";
 import { Pool } from "pg";
 
 import { PrismaClient } from "../src/generated/prisma/client.js";
+import { SUBSCRIPTION_TIER_SCORES } from "../src/constants/subscription.ts";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -54,6 +55,7 @@ const specialties = [
   { slug: "electricista", name: "Electricista", sortOrder: 6 },
   { slug: "soldador", name: "Soldador", sortOrder: 7 },
   { slug: "pintor", name: "Pintor", sortOrder: 8 },
+  { slug: "encofrado", name: "Encofrado", sortOrder: 9 },
 ] as const;
 
 const machineryTypes = [
@@ -63,19 +65,30 @@ const machineryTypes = [
   { slug: "excavadora", name: "Excavadora", sortOrder: 4 },
   { slug: "volquete", name: "Volquete", sortOrder: 5 },
   { slug: "motoniveladora", name: "Motoniveladora", sortOrder: 6 },
+  { slug: "trompo", name: "Trompo", sortOrder: 7 },
+  { slug: "andamios", name: "Andamios", sortOrder: 8 },
+  { slug: "amoladora", name: "Amoladora", sortOrder: 9 },
+  { slug: "rotomartillo", name: "Rotomartillo", sortOrder: 10 },
+  { slug: "flota-vehicular", name: "Flota vehicular", sortOrder: 11 },
+  { slug: "maquinaria-pesada", name: "Maquinaria pesada", sortOrder: 12 },
+  { slug: "cuadrillas-propias", name: "Cuadrillas propias", sortOrder: 13 },
   { slug: "ninguna", name: "Sin maquinaria", sortOrder: 99 },
 ] as const;
 
 const availabilityStatuses = [
-  { slug: "inmediata", name: "Inmediata", sortOrder: 1 },
-  { slug: "por-turnos", name: "Por turnos", sortOrder: 2 },
-  { slug: "libre", name: "Libre", sortOrder: 3 },
+  { slug: "libre", name: "Libre para trabajar", sortOrder: 1 },
+  { slug: "en-obra", name: "Actualmente en obra", sortOrder: 2 },
+  { slug: "inmediata", name: "Inmediata", sortOrder: 3 },
+  { slug: "por-turnos", name: "Por turnos", sortOrder: 4 },
 ] as const;
 
 const workerLevels = [
-  { slug: "peon", name: "Peón", sortOrder: 1 },
+  { slug: "ayudante", name: "Ayudante / Peón", sortOrder: 1 },
   { slug: "oficial", name: "Oficial", sortOrder: 2 },
-  { slug: "maestro", name: "Maestro", sortOrder: 3 },
+  { slug: "operario", name: "Operario", sortOrder: 3 },
+  { slug: "maestro", name: "Maestro de Obra", sortOrder: 4 },
+  { slug: "contratista", name: "Contratista", sortOrder: 5 },
+  { slug: "peon", name: "Peón", sortOrder: 6 },
 ] as const;
 
 const categories = [
@@ -102,6 +115,24 @@ const categories = [
     name: "Acabados y Remodelación",
     sortOrder: 4,
     specialtySlugs: ["pintor", "albanil", "electricista"],
+  },
+  {
+    slug: "movimiento-tierras",
+    name: "Movimiento de tierras",
+    sortOrder: 5,
+    specialtySlugs: ["operador-maquinaria"],
+  },
+  {
+    slug: "estructuras",
+    name: "Estructuras",
+    sortOrder: 6,
+    specialtySlugs: ["fierrero", "encofrado", "albanil"],
+  },
+  {
+    slug: "supervision",
+    name: "Supervisión",
+    sortOrder: 7,
+    specialtySlugs: ["albanil", "fierrero", "electricista"],
   },
 ] as const;
 
@@ -300,6 +331,88 @@ const workers = [
   },
 ] as const;
 
+function resolveSubscriptionScore(worker: {
+  isFeatured: boolean;
+  isVerified: boolean;
+}) {
+  if (worker.isFeatured && worker.isVerified) {
+    return SUBSCRIPTION_TIER_SCORES.premium;
+  }
+
+  if (worker.isFeatured) {
+    return SUBSCRIPTION_TIER_SCORES.standard;
+  }
+
+  if (worker.isVerified) {
+    return SUBSCRIPTION_TIER_SCORES.basic;
+  }
+
+  return SUBSCRIPTION_TIER_SCORES.free;
+}
+
+function buildWorkerImages(fullName: string) {
+  const seed = fullName
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return [
+    {
+      url: `https://picsum.photos/seed/${seed}-1/640/480`,
+      altText: `${fullName} - foto de obra 1`,
+      sortOrder: 0,
+    },
+    {
+      url: `https://picsum.photos/seed/${seed}-2/640/480`,
+      altText: `${fullName} - foto de obra 2`,
+      sortOrder: 1,
+    },
+    {
+      url: `https://picsum.photos/seed/${seed}-3/640/480`,
+      altText: `${fullName} - foto de obra 3`,
+      sortOrder: 2,
+    },
+  ];
+}
+
+async function syncWorkerImages(workerProfileId: string, fullName: string) {
+  const images = buildWorkerImages(fullName);
+
+  for (const image of images) {
+    const existing = await prisma.workerImage.findFirst({
+      where: {
+        workerProfileId,
+        sortOrder: image.sortOrder,
+        isDeleted: false,
+      },
+    });
+
+    if (existing) {
+      await prisma.workerImage.update({
+        where: { id: existing.id },
+        data: {
+          url: image.url,
+          altText: image.altText,
+          isDeleted: false,
+          deletedAt: null,
+        },
+      });
+      continue;
+    }
+
+    await prisma.workerImage.create({
+      data: {
+        workerProfileId,
+        url: image.url,
+        altText: image.altText,
+        sortOrder: image.sortOrder,
+      },
+    });
+  }
+}
+
 async function seedRoles() {
   for (const role of roles) {
     await prisma.role.upsert({
@@ -425,10 +538,18 @@ async function seedCatalog() {
 
 async function seedWorkers(maps: Awaited<ReturnType<typeof seedCatalog>>) {
   for (const worker of workers) {
+    const levelSlug = worker.levelSlug === "peon" ? "ayudante" : worker.levelSlug;
+    const availabilitySlug =
+      worker.availabilitySlug === "inmediata"
+        ? "libre"
+        : worker.availabilitySlug === "por-turnos"
+          ? "en-obra"
+          : worker.availabilitySlug;
+
     const specialtyId = maps.specialtyMap[worker.specialtySlug];
-    const levelId = maps.levelMap[worker.levelSlug];
+    const levelId = maps.levelMap[levelSlug];
     const machineryId = maps.machineryMap[worker.machinerySlug];
-    const availabilityId = maps.availabilityMap[worker.availabilitySlug];
+    const availabilityId = maps.availabilityMap[availabilitySlug];
 
     if (!specialtyId || !levelId || !machineryId || !availabilityId) {
       throw new Error(`Catálogo incompleto para ${worker.fullName}`);
@@ -439,10 +560,14 @@ async function seedWorkers(maps: Awaited<ReturnType<typeof seedCatalog>>) {
     });
 
     const data = {
+      publisherType: "individual",
       fullName: worker.fullName,
-      specialtyId,
+      whatsapp: "+51900000000",
+      documentType: "dni",
+      documentNumber: "00000000",
+      presentation: `Profesional con experiencia en ${worker.specialtySlug}.`,
+      yearsOfExperience: 5,
       levelId,
-      machineryId,
       availabilityId,
       departmentCode: worker.departmentCode,
       departmentName: worker.departmentName,
@@ -450,20 +575,75 @@ async function seedWorkers(maps: Awaited<ReturnType<typeof seedCatalog>>) {
       cityName: worker.cityName,
       districtCode: worker.districtCode,
       districtName: worker.districtName,
+      subscriptionScore: resolveSubscriptionScore(worker),
       isFeatured: worker.isFeatured,
       isVerified: worker.isVerified,
       updatedAt: worker.updatedAt,
     };
 
     if (existing) {
-      await prisma.workerProfile.update({
-        where: { id: existing.id },
-        data,
+      await prisma.workerProfileSpecialty.deleteMany({
+        where: { workerProfileId: existing.id },
       });
+      await prisma.workerProfileMachinery.deleteMany({
+        where: { workerProfileId: existing.id },
+      });
+      await prisma.workerCoverageDistrict.deleteMany({
+        where: { workerProfileId: existing.id },
+      });
+
+      const updated = await prisma.workerProfile.update({
+        where: { id: existing.id },
+        data: {
+          ...data,
+          specialties: {
+            create: [{ specialtyId }],
+          },
+          machinery: {
+            create: [{ machineryId }],
+          },
+          coverageDistricts: {
+            create: [
+              {
+                departmentCode: worker.departmentCode,
+                departmentName: worker.departmentName,
+                cityCode: worker.cityCode,
+                cityName: worker.cityName,
+                districtCode: worker.districtCode,
+                districtName: worker.districtName,
+              },
+            ],
+          },
+        },
+      });
+      await syncWorkerImages(updated.id, worker.fullName);
       continue;
     }
 
-    await prisma.workerProfile.create({ data });
+    const created = await prisma.workerProfile.create({
+      data: {
+        ...data,
+        specialties: {
+          create: [{ specialtyId }],
+        },
+        machinery: {
+          create: [{ machineryId }],
+        },
+        coverageDistricts: {
+          create: [
+            {
+              departmentCode: worker.departmentCode,
+              departmentName: worker.departmentName,
+              cityCode: worker.cityCode,
+              cityName: worker.cityName,
+              districtCode: worker.districtCode,
+              districtName: worker.districtName,
+            },
+          ],
+        },
+      },
+    });
+    await syncWorkerImages(created.id, worker.fullName);
   }
 }
 

@@ -7,7 +7,7 @@ import {
   getAuthUser,
   syncProfileFromAuthUser,
 } from "@/lib/auth/session";
-import { getRoleBySlug } from "@/lib/queries/roles";
+import { getRoleBySlug, ROLES_NOT_SEEDED_MESSAGE } from "@/lib/queries/roles";
 import { activeOnly, prisma } from "@/lib/prisma";
 
 type ActionResult = {
@@ -30,7 +30,11 @@ export async function syncUserProfileAction(
       return { error: "No hay sesión activa." };
     }
 
-    await syncProfileFromAuthUser(fullName);
+    const profile = await syncProfileFromAuthUser(fullName);
+
+    if (!profile) {
+      return { error: ROLES_NOT_SEEDED_MESSAGE };
+    }
 
     revalidatePath("/", "layout");
     return {};

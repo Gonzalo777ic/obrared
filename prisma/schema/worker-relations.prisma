@@ -1,0 +1,49 @@
+model WorkerProfileSpecialty {
+  workerProfileId String @map("worker_profile_id") @db.Uuid
+  specialtyId     String @map("specialty_id") @db.Uuid
+
+  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id])
+  specialty     Specialty     @relation(fields: [specialtyId], references: [id])
+
+  @@id([workerProfileId, specialtyId])
+  @@map("worker_profile_specialties")
+}
+
+model WorkerProfileMachinery {
+  workerProfileId String @map("worker_profile_id") @db.Uuid
+  machineryId     String @map("machinery_id") @db.Uuid
+
+  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id])
+  machinery     MachineryType @relation(fields: [machineryId], references: [id])
+
+  @@id([workerProfileId, machineryId])
+  @@map("worker_profile_machinery")
+}
+
+model WorkerProfileCategory {
+  workerProfileId String @map("worker_profile_id") @db.Uuid
+  categoryId      String @map("category_id") @db.Uuid
+
+  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id])
+  category      WorkCategory  @relation(fields: [categoryId], references: [id])
+
+  @@id([workerProfileId, categoryId])
+  @@map("worker_profile_categories")
+}
+
+model WorkerCoverageDistrict {
+  id              String @id @default(uuid()) @db.Uuid
+  workerProfileId String @map("worker_profile_id") @db.Uuid
+  departmentCode  String @map("department_code")
+  departmentName  String @map("department_name")
+  cityCode        String @map("city_code")
+  cityName        String @map("city_name")
+  districtCode    String @map("district_code")
+  districtName    String @map("district_name")
+
+  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id])
+
+  @@unique([workerProfileId, districtCode])
+  @@index([districtCode])
+  @@map("worker_coverage_districts")
+}

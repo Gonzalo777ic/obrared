@@ -5,6 +5,10 @@ import { activeOnly, prisma } from "@/lib/prisma";
 
 const profileInclude = {
   role: true,
+  workerProfile: {
+    where: { isDeleted: false },
+    select: { id: true },
+  },
 } as const;
 
 export async function getAuthUser() {
@@ -37,6 +41,7 @@ export async function getOrCreateUserProfile() {
   if (existing) return existing;
 
   const defaultRole = await getDefaultRole();
+  if (!defaultRole) return null;
 
   return prisma.userProfile.create({
     data: {
@@ -66,6 +71,7 @@ export async function syncProfileFromAuthUser(fullName?: string) {
   if (!user?.email) return null;
 
   const defaultRole = await getDefaultRole();
+  if (!defaultRole) return null;
 
   return prisma.userProfile.upsert({
     where: { supabaseId: user.id },
@@ -83,4 +89,8 @@ export async function syncProfileFromAuthUser(fullName?: string) {
     },
     include: profileInclude,
   });
+}
+
+export function isDefaultRoleSlug(slug: string) {
+  return slug === DEFAULT_ROLE_SLUG;
 }

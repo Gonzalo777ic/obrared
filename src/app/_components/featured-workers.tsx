@@ -3,9 +3,17 @@ import type { WorkerProfile } from "@/types/worker";
 
 type FeaturedWorkersProps = {
   workers: WorkerProfile[];
+  locationActive: boolean;
+  isAuthenticated: boolean;
+  senderName?: string | null;
 };
 
-export function FeaturedWorkers({ workers }: FeaturedWorkersProps) {
+export function FeaturedWorkers({
+  workers,
+  locationActive,
+  isAuthenticated,
+  senderName = null,
+}: FeaturedWorkersProps) {
   if (workers.length === 0) return null;
 
   return (
@@ -14,22 +22,28 @@ export function FeaturedWorkers({ workers }: FeaturedWorkersProps) {
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
-              Destacados
+              Resultados
             </p>
             <h2 className="mt-1 text-xl font-semibold text-slate-900">
-              Perfiles verificados y destacados
+              {locationActive ? "Profesionales en tu zona" : "Profesionales disponibles"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Mayor visibilidad para suscripciones y anuncios premium.
+              {locationActive
+                ? "Ordenados por cercanía y relevancia en tu distrito."
+                : "Usa tu ubicación para ver profesionales cerca de tu obra."}
             </p>
           </div>
         </div>
 
-        <div className="-mx-4 mt-5 flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+        <div className="mt-5 flex flex-col gap-3">
           {workers.map((worker) => (
-            <div key={worker.id} className="snap-start sm:min-w-0">
-              <WorkerCard worker={worker} />
-            </div>
+            <WorkerCard
+              key={worker.id}
+              worker={worker}
+              layout="horizontal"
+              isAuthenticated={isAuthenticated}
+              senderName={senderName}
+            />
           ))}
         </div>
       </div>
