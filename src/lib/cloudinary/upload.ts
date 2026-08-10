@@ -25,9 +25,19 @@ export const CLOUDINARY_IMAGE_TRANSFORMS = {
     { width: 1600, height: 1200, crop: "limit" },
     { fetch_format: "auto", quality: "auto:good" },
   ],
+  review: [
+    { width: 1200, height: 1200, crop: "limit" },
+    { fetch_format: "auto", quality: "auto:good" },
+  ],
 } as const;
 
-export type CloudinaryUploadFolder = "profile" | "gallery";
+export const CLOUDINARY_FOLDER_PATHS = {
+  profile: "obrared/workers/profile",
+  gallery: "obrared/workers/gallery",
+  review: "obrared/reviews",
+} as const;
+
+export type CloudinaryUploadFolder = keyof typeof CLOUDINARY_FOLDER_PATHS;
 
 export async function uploadOptimizedImage(
   fileBuffer: Buffer,
@@ -35,16 +45,12 @@ export async function uploadOptimizedImage(
   folder: CloudinaryUploadFolder,
 ) {
   const client = getCloudinaryClient();
-  const transformation =
-    folder === "profile"
-      ? CLOUDINARY_IMAGE_TRANSFORMS.profile
-      : CLOUDINARY_IMAGE_TRANSFORMS.gallery;
+  const transformation = CLOUDINARY_IMAGE_TRANSFORMS[folder];
 
   const result = await client.uploader.upload(
     `data:${mimeType};base64,${fileBuffer.toString("base64")}`,
     {
-      folder:
-        folder === "profile" ? "obrared/workers/profile" : "obrared/workers/gallery",
+      folder: CLOUDINARY_FOLDER_PATHS[folder],
       resource_type: "image",
       transformation,
     },
@@ -61,14 +67,10 @@ export async function uploadRemoteImage(
   folder: CloudinaryUploadFolder,
 ) {
   const client = getCloudinaryClient();
-  const transformation =
-    folder === "profile"
-      ? CLOUDINARY_IMAGE_TRANSFORMS.profile
-      : CLOUDINARY_IMAGE_TRANSFORMS.gallery;
+  const transformation = CLOUDINARY_IMAGE_TRANSFORMS[folder];
 
   const result = await client.uploader.upload(remoteUrl, {
-    folder:
-      folder === "profile" ? "obrared/workers/profile" : "obrared/workers/gallery",
+    folder: CLOUDINARY_FOLDER_PATHS[folder],
     resource_type: "image",
     transformation,
   });

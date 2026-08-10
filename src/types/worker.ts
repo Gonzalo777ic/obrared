@@ -7,6 +7,14 @@ export type WorkerCoverageDistrict = {
   departmentName: string;
 };
 
+export type WorkerImage = {
+  id: string;
+  url: string;
+  altText: string | null;
+  description: string | null;
+  sortOrder: number;
+};
+
 export type WorkerProfile = {
   id: string;
   publisherType: string;
@@ -37,11 +45,30 @@ export type WorkerProfile = {
   images: WorkerImage[];
 };
 
-export type WorkerImage = {
+export type WorkerReviewPhoto = {
   id: string;
   url: string;
-  altText: string | null;
   sortOrder: number;
+};
+
+export type WorkerReview = {
+  id: string;
+  body: string;
+  rating: number;
+  createdAt: string;
+  authorName: string;
+  images: WorkerReviewPhoto[];
+};
+
+export type PublicWorkerDetail = WorkerProfile & {
+  presentation: string | null;
+  profilePhotoUrl: string | null;
+  yearsOfExperience: number;
+  contactPersonName: string | null;
+  contactPersonRole: string | null;
+  reviews: WorkerReview[];
+  averageRating: number | null;
+  reviewCount: number;
 };
 
 export type MyWorkerAd = WorkerProfile & {

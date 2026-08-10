@@ -79,7 +79,7 @@ export async function uploadWorkerPhotoAction(formData: FormData) {
   }
 
   const folder = formData.get("folder");
-  if (folder !== "profile" && folder !== "gallery") {
+  if (folder !== "profile" && folder !== "gallery" && folder !== "review") {
     return { error: "Destino de imagen inválido." };
   }
 

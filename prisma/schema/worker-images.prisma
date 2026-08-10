@@ -4,6 +4,7 @@ model WorkerImage {
   url                String
   cloudinaryPublicId String?   @map("cloudinary_public_id")
   altText            String?   @map("alt_text")
+  description        String?
   sortOrder          Int       @default(0) @map("sort_order")
   isDeleted          Boolean   @default(false) @map("is_deleted")
   deletedAt          DateTime? @map("deleted_at")

@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
 import { uploadWorkerPhotoAction } from "@/app/_actions/worker-onboarding";
 
 type CloudinaryImageUploaderProps = {
-  folder: "profile" | "gallery";
+  folder: "profile" | "gallery" | "review";
   label: string;
   hint?: string;
   value: string[];

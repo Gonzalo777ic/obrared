@@ -28,6 +28,7 @@ model UserProfile {
 
   role          Role           @relation(fields: [roleId], references: [id])
   workerProfile WorkerProfile?
+  reviews       WorkerReview[]
 
   @@index([roleId])
   @@map("user_profiles")

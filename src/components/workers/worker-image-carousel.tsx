@@ -26,6 +26,7 @@ export function WorkerImageCarousel({
             id: "fallback",
             url: FALLBACK_IMAGE,
             altText: workerName,
+            description: null,
             sortOrder: 0,
           },
         ];

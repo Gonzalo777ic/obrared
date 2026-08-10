@@ -93,6 +93,7 @@ export function mapWorkerProfile(worker: WorkerProfileRecord) {
       id: image.id,
       url: image.url,
       altText: image.altText,
+      description: image.description,
       sortOrder: image.sortOrder,
     })),
   };

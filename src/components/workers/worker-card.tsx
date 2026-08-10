@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { MapPin, Wrench } from "lucide-react";
 
 import { ContactWorkerButton } from "@/components/workers/contact-worker-button";
+import { getWorkerProfileHref } from "@/lib/workers/profile-href";
 import type { WorkerProfile } from "@/types/worker";
 
 import { WorkerImageCarousel } from "./worker-image-carousel";
@@ -23,17 +25,21 @@ export function WorkerCard({
     day: "2-digit",
     month: "short",
   }).format(new Date(worker.updatedAt));
+  const profileHref = getWorkerProfileHref(worker);
 
   if (layout === "vertical") {
     return (
       <article className="flex h-full min-w-[260px] flex-col gap-3 border border-slate-200 bg-white p-4">
-        <WorkerImageCarousel images={worker.images} workerName={worker.fullName} />
+        <Link href={profileHref} className="block">
+          <WorkerImageCarousel images={worker.images} workerName={worker.fullName} />
+        </Link>
         <WorkerCardBody
           worker={worker}
           location={location}
           updatedLabel={updatedLabel}
           isAuthenticated={isAuthenticated}
           senderName={senderName}
+          profileHref={profileHref}
         />
       </article>
     );
@@ -41,7 +47,9 @@ export function WorkerCard({
 
   return (
     <article className="flex overflow-hidden border border-slate-200 bg-white">
-      <WorkerImageCarousel images={worker.images} workerName={worker.fullName} />
+      <Link href={profileHref} className="block shrink-0">
+        <WorkerImageCarousel images={worker.images} workerName={worker.fullName} />
+      </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
         <WorkerCardBody
           worker={worker}
@@ -49,6 +57,7 @@ export function WorkerCard({
           updatedLabel={updatedLabel}
           isAuthenticated={isAuthenticated}
           senderName={senderName}
+          profileHref={profileHref}
         />
       </div>
     </article>
@@ -61,6 +70,7 @@ type WorkerCardBodyProps = {
   updatedLabel: string;
   isAuthenticated: boolean;
   senderName: string | null;
+  profileHref: string;
 };
 
 function WorkerCardBody({
@@ -69,13 +79,16 @@ function WorkerCardBody({
   updatedLabel,
   isAuthenticated,
   senderName,
+  profileHref,
 }: WorkerCardBodyProps) {
   return (
     <>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-slate-900">
-            {worker.fullName}
+            <Link href={profileHref} className="hover:text-amber-700">
+              {worker.fullName}
+            </Link>
           </h3>
           <p className="mt-0.5 text-sm text-slate-600">
             {worker.specialtyName} · {worker.levelName}
@@ -117,6 +130,12 @@ function WorkerCardBody({
           {worker.availabilityName}
         </span>
         <div className="flex items-center gap-2">
+          <Link
+            href={profileHref}
+            className="text-[11px] font-semibold text-slate-600 hover:text-slate-900"
+          >
+            Ver perfil
+          </Link>
           <span className="text-[11px] text-slate-400">Act. {updatedLabel}</span>
           <ContactWorkerButton
             workerName={worker.fullName}
